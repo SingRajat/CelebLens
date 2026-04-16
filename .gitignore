@@ -1,0 +1,9 @@
+lens-env/
+Celebrity_Detector.egg-info
+logs/
+.env
+*.md
+*.pyc
+*.pyo
+*.pyd
+*.pycache__
