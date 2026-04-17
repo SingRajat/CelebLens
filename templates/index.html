@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Celebrity Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <div class="app">
+    <div class="bg-gradient"></div>
+
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <h1 class="title">Celebrity Detector</h1>
+        <p class="subtitle">AI-powered recognition</p>
+      </header>
+
+      <!-- Upload -->
+      <section class="upload-section">
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
+          <input type="hidden" name="clean_img_data" value="{{ clean_img_data }}">
+          <input type="hidden" name="result_img_data" value="{{ result_img_data }}">
+          <div class="upload-box" id="uploadBox">
+            <input type="file" name="image" accept="image/*" id="fileInput" class="file-input">
+            <label for="fileInput" class="upload-inner">
+              <div class="upload-icon">📁</div>
+              <div class="upload-text">
+                <span class="upload-main" id="uploadMain">Drop image here</span>
+                <span class="upload-sub" id="uploadSub">or click to browse</span>
+              </div>
+            </label>
+            <div class="model-selector-wrapper">
+              <select name="ai_engine" class="model-selector" id="aiEngine">
+                <option value="gemini" {% if ai_engine == 'gemini' %}selected{% endif %}>Google Gemini 2.5 Flash</option>
+                <option value="huggingface" {% if ai_engine == 'huggingface' %}selected{% endif %}>Qwen 2.5 Vision</option>
+                <option value="groq" {% if ai_engine == 'groq' %}selected{% endif %}>LLama 4 Scout</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-primary">Detect</button>
+        </form>
+      </section>
+
+      {% if result_img_data %}
+      <!-- Results -->
+      <section class="results">
+        <div class="results-grid">
+          <!-- Image -->
+          <div class="image-section">
+            <div class="image-wrapper">
+              <img src="data:image/jpeg;base64,{{ result_img_data }}" alt="Detected" class="result-img">
+            </div>
+          </div>
+
+          <!-- Info -->
+          <div class="info-section">
+            <div class="info-card">
+              <h2 class="info-title">Details</h2>
+
+              <div class="info-list">
+                {% if player_info.startswith("Error:") %}
+                <div
+                  style="color: #ff6b6b; padding: 1rem; border: 1px solid rgba(255,107,107,0.2); border-radius: 8px; background: rgba(255,107,107,0.05); margin-bottom: 1rem;">
+                  {{ player_info }}
+                </div>
+                {% else %}
+                {% for line in player_info.splitlines() %}
+                {% if "**Analysis**" in line %}
+                <div class="info-row">
+                  <span class="info-key" style="color: var(--accent);">Analysis</span>
+                  <span class="info-val" style="font-size: 0.9rem; text-align: left; line-height: 1.4;">{{
+                    line.split(':', 1)[-1].strip() }}</span>
+                </div>
+                {% elif "**Full Name**" in line %}
+                <div class="info-row">
+                  <span class="info-key">Name</span>
+                  <span class="info-val">{{ line.split(':', 1)[-1].strip() }}</span>
+                </div>
+                {% elif "**Profession**" in line %}
+                <div class="info-row">
+                  <span class="info-key">Profession</span>
+                  <span class="info-val">{{ line.split(':', 1)[-1].strip() }}</span>
+                </div>
+                {% elif "**Nationality**" in line %}
+                <div class="info-row">
+                  <span class="info-key">Nationality</span>
+                  <span class="info-val">{{ line.split(':', 1)[-1].strip() }}</span>
+                </div>
+                {% elif "**Famous For**" in line %}
+                <div class="info-row">
+                  <span class="info-key">Famous For</span>
+                  <span class="info-val">{{ line.split(':', 1)[-1].strip() }}</span>
+                </div>
+                {% elif "**Top Achievements**" in line %}
+                <div class="info-row achievements-header">
+                  <span class="info-key">Achievements</span>
+                </div>
+                {% elif line.startswith(" - ") %}
+                <div class="achievement">
+                  <span class="achievement-dot">•</span>
+                  <span>{{ line.replace(' - ', '') }}</span>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+              </div>
+
+              <!-- Q&A -->
+              <div class="qa-section">
+                <form method="POST" class="qa-form">
+                  <input type="hidden" name="player_name" value="{{ player_name }}">
+                  <input type="hidden" name="player_info" value="{{ player_info }}">
+                  <input type="hidden" name="result_img_data" value="{{ result_img_data }}">
+
+                  <div class="input-group">
+                    <input name="question" placeholder="Ask a question..." required class="input-field">
+                    <button type="submit" class="btn-ask">Send</button>
+                  </div>
+                </form>
+
+                {% if answer %}
+                <div class="answer">
+                  <div class="answer-label">Answer</div>
+                  <div class="answer-text">{{ answer }}</div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const uploadMain = document.getElementById('uploadMain');
+    const uploadSub = document.getElementById('uploadSub');
+
+    if (fileInput) {
+      // Handle file selection
+      fileInput.addEventListener('change', function (e) {
+        if (this.files && this.files.length > 0) {
+          const fileName = this.files[0].name;
+          uploadMain.textContent = fileName;
+          uploadSub.textContent = 'Click to change';
+          uploadBox.classList.add('has-file');
+        } else {
+          uploadMain.textContent = 'Drop image here';
+          uploadSub.textContent = 'or click to browse';
+          uploadBox.classList.remove('has-file');
+        }
+      });
+    }
+
+    if (uploadBox && fileInput) {
+      // Prevent default drag behaviors
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadBox.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      // Highlight drop area when item is dragged over it
+      ['dragenter', 'dragover'].forEach(eventName => {
+        uploadBox.addEventListener(eventName, () => {
+          uploadBox.classList.add('dragging');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        uploadBox.addEventListener(eventName, () => {
+          uploadBox.classList.remove('dragging');
+        }, false);
+      });
+
+      // Handle dropped files
+      uploadBox.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length > 0) {
+          fileInput.files = files;
+          // Trigger change event manually
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+        }
+      }, false);
+    }
+  </script>
+</body>
+
+</html>
