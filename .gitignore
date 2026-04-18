@@ -1,5 +1,3 @@
-lens-env/
-Celebrity_Detector.egg-info
 logs/
 .env
 *.md
@@ -7,4 +5,4 @@ logs/
 *.pyo
 *.pyd
 *.pycache__
-scratch/
+
