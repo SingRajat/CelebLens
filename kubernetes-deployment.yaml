@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celebrity-detector
+spec:
+  replicas:2
+  selector:
+    matchLabels:
+      app: celebrity-detector
+  template:
+    metadata:
+      labels:
+        app: celebrity-detector
+    spec:
+      containers:
+      - name: celebrity-detector
+        image: us-central1-docker.pkg.dev/gen-lang-client-0729539659/llmops-repo/llmops-app:latest
+        ports:
+        - containerPort: 5000
+        env: 
+        - name: GROQ_API_KEY
+          valueForm:
+             secretKeyRef:
+                name: groq-api-key
+                key:GROQ_API_KEY
+
+---
+
+apiVersion: v1
+kind:Service
+metadata: 
+   name:celebrity-detector
+spec:
+  selector:
+      app:celebrity-detector
+  ports:
+    - protocol:TCP
+      port:5000
+      targetPort:5000
+
+  type:LoadBalancer
