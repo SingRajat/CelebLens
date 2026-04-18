@@ -7,3 +7,4 @@ logs/
 *.pyo
 *.pyd
 *.pycache__
+scratch/
